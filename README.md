@@ -9,3 +9,19 @@
 7. Admin can delete companies and it will delete their users and their rooms
 8. Admin can delete users and it will delete their booking
 9. Admin can transfer ownership of contract
+
+## Website data API
+
+* Companies ->
+  * id
+  * name
+  * roomsIds
+
+* Rooms ->
+  * id
+  * companyId
+
+* Slots ->
+  * slotId
+  * roomId
+  * isBooked
