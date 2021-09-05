@@ -212,4 +212,80 @@ describe('BlockCal contract', function () {
       expect(await blockCal.isRoomSlotBooked(1, 1)).to.equal(false);
     });
   });
+
+  describe('Data fetching', () => {
+    beforeEach(async () => {
+      const [, addr1, addr2] = await ethers.getSigners();
+      await blockCal.addCompany('Coke');
+      await blockCal.addCompany('Pepsi');
+      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.addEmployee(addr2.address, 2, 'Tyler');
+    });
+
+    it('Should return user profile', async () => {
+      const [, addr1, addr2, addr3] = await ethers.getSigners();
+
+      const userInfos1 = await blockCal.employeeInfos(addr1.address);
+      expect(userInfos1.addr).to.equal(addr1.address);
+      expect(userInfos1.name).to.equal('Max');
+      expect(userInfos1.companyId).to.equal(1);
+
+      const userInfos2 = await blockCal.employeeInfos(addr2.address);
+      expect(userInfos2.addr).to.equal(addr2.address);
+      expect(userInfos2.name).to.equal('Tyler');
+      expect(userInfos2.companyId).to.equal(2);
+
+      await expect(blockCal.employeeInfos(addr3.address)).to.be.revertedWith(
+        'Employee does not exist'
+      );
+    });
+
+    it('Should return rooms', async () => {
+      await blockCal.addRooms(1, 10);
+      await blockCal.addRooms(2, 10);
+      const rooms = await blockCal.getRooms();
+
+      expect(
+        rooms.map((room: any) => [
+          room.id.toNumber(),
+          room.companyId.toNumber(),
+        ])
+      ).to.deep.equal(
+        JSON.parse(`
+          [
+            [ 1, 1 ],  [ 2, 1 ],  [ 3, 1 ],
+            [ 4, 1 ],  [ 5, 1 ],  [ 6, 1 ],
+            [ 7, 1 ],  [ 8, 1 ],  [ 9, 1 ],
+            [ 10, 1 ], [ 11, 2 ], [ 12, 2 ],
+            [ 13, 2 ], [ 14, 2 ], [ 15, 2 ],
+            [ 16, 2 ], [ 17, 2 ], [ 18, 2 ],
+            [ 19, 2 ], [ 20, 2 ]
+          ]
+        `)
+      );
+    });
+
+    it('Should return booked slots', async () => {
+      await blockCal.addRooms(1, 10);
+      await blockCal.addRooms(2, 10);
+
+      const [, addr1, addr2] = await ethers.getSigners();
+      await blockCal.connect(addr1).bookSlot(1, 1);
+      await blockCal.connect(addr1).bookSlot(1, 2);
+      await blockCal.connect(addr1).bookSlot(1, 3);
+      await blockCal.connect(addr2).bookSlot(2, 4);
+      await blockCal.connect(addr2).bookSlot(2, 1);
+
+      const bookedSlots = await blockCal.getBookedSlots();
+
+      expect(bookedSlots).to.have.lengthOf(5);
+      expect(bookedSlots[0].bookedBy).to.equal(addr1.address);
+      expect(bookedSlots[0].roomId).to.equal(1);
+      expect(bookedSlots[0].slotId).to.equal(1);
+
+      expect(bookedSlots[3].bookedBy).to.equal(addr2.address);
+      expect(bookedSlots[3].roomId).to.equal(2);
+      expect(bookedSlots[3].slotId).to.equal(4);
+    });
+  });
 });

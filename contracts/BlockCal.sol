@@ -1,11 +1,16 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.4;
 
-// import "hardhat/console.sol";
+import "hardhat/console.sol";
 
 struct Room {
   uint256 id;
   uint256 index;
+  uint256 companyId;
+}
+
+struct RoomResponse {
+  uint256 id;
   uint256 companyId;
 }
 
@@ -22,8 +27,22 @@ struct Employee {
   uint256 companyId;
 }
 
+struct EmployeeResponse {
+  address addr;
+  string name;
+  uint256 companyId;
+}
+
 struct Slot {
   bool booked;
+  address bookedBy;
+  uint256 index;
+  uint256 bookedAt;
+}
+
+struct BookedSlotResponse {
+  uint256 slotId;
+  uint256 roomId;
   address bookedBy;
 }
 
@@ -46,18 +65,67 @@ contract BlockCal {
   // slots 1 to 25
   // usage: `bookings[roomId][slotId]`
   mapping(uint256 => mapping(uint256 => Slot)) public bookings;
+  uint256[][] public bookedSlots;
 
   function getCompanies() public view returns (uint256[] memory) {
     require(msg.sender == owner, "Only owner can see list of companies");
     return companiesIds;
   }
 
-  function getRooms() public view returns (uint256[] memory) {
+  function getRooms() public view returns (RoomResponse[] memory) {
     require(
-      employees[msg.sender].addr == msg.sender,
+      employees[msg.sender].addr == msg.sender ||
+        msg.sender == owner ||
+        msg.sender == address(this),
       "Only employees can see list of rooms"
     );
-    return roomsIds;
+
+    RoomResponse[] memory _rooms = new RoomResponse[](roomsIds.length);
+    for (uint256 i = 0; i < roomsIds.length; i++) {
+      _rooms[i].id = rooms[roomsIds[i]].id;
+      _rooms[i].companyId = rooms[roomsIds[i]].companyId;
+    }
+
+    return _rooms;
+  }
+
+  function getBookedSlots() public view returns (BookedSlotResponse[] memory) {
+    require(
+      employees[msg.sender].addr == msg.sender ||
+        msg.sender == owner ||
+        msg.sender == address(this),
+      "Only employees can see list of slots"
+    );
+
+    BookedSlotResponse[] memory _bookedSlots = new BookedSlotResponse[](
+      bookedSlots.length
+    );
+
+    for (uint256 i = 0; i < bookedSlots.length; i++) {
+      uint256 roomId = bookedSlots[i][0];
+      uint256 slotId = bookedSlots[i][1];
+
+      _bookedSlots[i].slotId = slotId;
+      _bookedSlots[i].roomId = roomId;
+      _bookedSlots[i].bookedBy = bookings[roomId][slotId].bookedBy;
+    }
+
+    return _bookedSlots;
+  }
+
+  function employeeInfos(address _addr)
+    public
+    view
+    returns (EmployeeResponse memory)
+  {
+    require(employees[_addr].addr == _addr, "Employee does not exist");
+
+    EmployeeResponse memory _employee;
+    _employee.addr = _addr;
+    _employee.name = employees[_addr].name;
+    _employee.companyId = employees[_addr].companyId;
+
+    return _employee;
   }
 
   function isRoomSlotBooked(uint256 roomId, uint256 slot)
@@ -172,14 +240,6 @@ contract BlockCal {
     return true;
   }
 
-  function employeeInfos(address addr) public view returns (uint256 companyId) {
-    if (employees[addr].addr == addr) {
-      return employees[addr].companyId;
-    }
-
-    require(false, "Employee does not exist");
-  }
-
   function addRoom(uint256 companyId) public returns (bool success) {
     bool isOwner = msg.sender == owner || address(this) == msg.sender;
     bool companyExist = companies[companyId].id == companyId && companyId != 0;
@@ -228,18 +288,28 @@ contract BlockCal {
     return true;
   }
 
-  function bookSlot(uint256 roomId, uint256 slot)
+  function bookSlot(uint256 roomId, uint256 slotId)
     public
     returns (bool success)
   {
-    require(slot > 0 && slot < 26, "Slot must be between 1 and 25");
-    require(bookings[roomId][slot].booked != true, "Slot already booked");
+    require(slotId > 0 && slotId < 26, "Slot must be between 1 and 25");
+    require(bookings[roomId][slotId].booked != true, "Slot already booked");
     require(
       employees[msg.sender].addr == msg.sender,
       "Employee does not exist"
     );
-    bookings[roomId][slot].booked = true;
-    bookings[roomId][slot].bookedBy = msg.sender;
+
+    uint256[] memory _bookedSlot = new uint256[](2);
+    _bookedSlot[0] = roomId;
+    _bookedSlot[1] = slotId;
+
+    bookedSlots.push(_bookedSlot);
+
+    bookings[roomId][slotId].booked = true;
+    bookings[roomId][slotId].bookedBy = msg.sender;
+    bookings[roomId][slotId].index = bookedSlots.length - 1;
+    bookings[roomId][slotId].bookedAt = block.timestamp;
+
     return true;
   }
 
@@ -252,7 +322,16 @@ contract BlockCal {
       bookings[roomId][slot].bookedBy == msg.sender,
       "Only owner can unbook slot"
     );
+
+    uint256 rowToDelete = bookings[roomId][slot].index;
+    uint256[] memory keyToMove = bookedSlots[bookedSlots.length - 1];
+
+    bookedSlots[rowToDelete] = keyToMove;
+    bookings[roomId][slot].index = rowToDelete;
+
+    bookedSlots.pop();
     delete bookings[roomId][slot];
+
     return true;
   }
 }
