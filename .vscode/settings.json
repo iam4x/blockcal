@@ -1,0 +1,10 @@
+{
+  "solidity.formatter": "prettier",
+  "[solidity]": {
+    "editor.formatOnSave": true,
+    "editor.defaultFormatter": "JuanBlanco.solidity"
+  },
+  "editor.codeActionsOnSave": {
+    "source.fixAll": true
+  }
+}
