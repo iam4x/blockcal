@@ -106,6 +106,25 @@ describe('BlockCal contract', function () {
         blockCal.addEmployee(addr1.address, 3, 'Max')
       ).to.be.revertedWith('Company does not exist');
     });
+
+    it('Should remove employee', async () => {
+      const [, addr1] = await ethers.getSigners();
+      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.removeEmployee(addr1.address);
+      await expect(blockCal.employeeInfos(addr1.address)).to.be.revertedWith(
+        'Employee does not exist'
+      );
+    });
+
+    it('Should remove booked slots when removing employee', async () => {
+      const [, addr1] = await ethers.getSigners();
+      await blockCal.addRoom(1);
+      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.connect(addr1).bookSlot(1, 1);
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(1);
+      await blockCal.removeEmployee(addr1.address);
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(0);
+    });
   });
 
   describe('Rooms', () => {

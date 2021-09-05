@@ -228,6 +228,14 @@ contract BlockCal {
     require(isOwner, "Only owner can remove employee");
     require(employeeExist, "Employee does not exist");
 
+    for (uint256 i = 0; i < bookedSlots.length; i++) {
+      uint256 roomId = bookedSlots[i][0];
+      uint256 slotId = bookedSlots[i][1];
+      if (bookings[roomId][slotId].bookedBy == employeeAddress) {
+        this.unbookSlot(roomId, slotId);
+      }
+    }
+
     uint256 rowToDelete = employees[employeeAddress].index;
     address keyToMove = employeesAddresses[employeesAddresses.length - 1];
 
@@ -319,7 +327,9 @@ contract BlockCal {
   {
     require(bookings[roomId][slot].booked, "Slot is not booked");
     require(
-      bookings[roomId][slot].bookedBy == msg.sender,
+      bookings[roomId][slot].bookedBy == msg.sender ||
+        msg.sender == owner ||
+        msg.sender == address(this),
       "Only owner can unbook slot"
     );
 
