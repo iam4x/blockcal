@@ -7,4 +7,9 @@ module.exports = {
     '@typescript-eslint/explicit-function-return-type': 'off',
     'react/function-component-definition': 'off',
   },
+  settings: {
+    react: {
+      version: 'detect',
+    },
+  },
 };

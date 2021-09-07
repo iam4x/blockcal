@@ -25,3 +25,16 @@
   * slotId
   * roomId
   * isBooked
+
+## Admin interface
+
+* add antd
+* add tailwind
+* add jotai
+
+* If logged in as admin
+* Redirect to `/admin`
+* Use antd components to create forms
+  * Create companies
+  * Create users
+  * Create rooms

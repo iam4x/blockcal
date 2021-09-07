@@ -9,9 +9,14 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@makerdao/multicall": "^0.12.0",
+    "@web3-react/core": "^6.1.9",
+    "@web3-react/injected-connector": "^6.0.7",
+    "jotai": "^1.3.2",
     "next": "11.1.2",
     "react": "17.0.2",
-    "react-dom": "17.0.2"
+    "react-dom": "17.0.2",
+    "web3": "^1.5.2"
   },
   "devDependencies": {
     "@types/react": "17.0.19",
@@ -19,6 +24,7 @@
     "@typescript-eslint/parser": "^4.30.0",
     "add": "^2.0.6",
     "babel-eslint": "^10.1.0",
+    "dotenv": "^10.0.0",
     "eslint": "^7.32.0",
     "eslint-config-algolia": "^19.0.2",
     "eslint-config-next": "11.1.2",
