@@ -241,6 +241,15 @@ describe('BlockCal contract', function () {
       await blockCal.addEmployee(addr2.address, 2, 'Tyler');
     });
 
+    it('Should return companies', async () => {
+      const companies = await blockCal.getCompanies();
+      expect(companies).to.have.lengthOf(2);
+      expect(companies[0].id).to.equal(1);
+      expect(companies[0].name).to.equal('Coke');
+      expect(companies[1].id).to.equal(2);
+      expect(companies[1].name).to.equal('Pepsi');
+    });
+
     it('Should return user profile', async () => {
       const [, addr1, addr2, addr3] = await ethers.getSigners();
 

@@ -1,8 +1,6 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.4;
 
-import "hardhat/console.sol";
-
 struct Room {
   uint256 id;
   uint256 index;
@@ -17,6 +15,11 @@ struct RoomResponse {
 struct Company {
   uint256 id;
   uint256 index;
+  string name;
+}
+
+struct CompanyResponse {
+  uint256 id;
   string name;
 }
 
@@ -67,9 +70,19 @@ contract BlockCal {
   mapping(uint256 => mapping(uint256 => Slot)) public bookings;
   uint256[][] public bookedSlots;
 
-  function getCompanies() public view returns (uint256[] memory) {
+  function getCompanies() public view returns (CompanyResponse[] memory) {
     require(msg.sender == owner, "Only owner can see list of companies");
-    return companiesIds;
+
+    CompanyResponse[] memory _companies = new CompanyResponse[](
+      companiesIds.length
+    );
+
+    for (uint256 i = 0; i < companiesIds.length; i++) {
+      _companies[i].id = companies[companiesIds[i]].id;
+      _companies[i].name = companies[companiesIds[i]].name;
+    }
+
+    return _companies;
   }
 
   function getRooms() public view returns (RoomResponse[] memory) {
