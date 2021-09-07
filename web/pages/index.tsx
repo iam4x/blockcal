@@ -1,30 +1,40 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useWeb3React } from '@web3-react/core';
 import { InjectedConnector } from '@web3-react/injected-connector';
+import { Alert, Button } from 'antd';
 
 import { CHAIN_ID } from '../config';
-import { AdminComponent } from '../components/admin.component';
-import { useContract } from '../utils/contract';
 
 const injected = new InjectedConnector({ supportedChainIds: [CHAIN_ID] });
 
 export default function HomeComponent() {
+  const [loading, setLoading] = useState(false);
   const { activate, error, account, deactivate } = useWeb3React();
-  const { owner } = useContract();
 
   const handleClick = () => {
-    return account ? deactivate() : activate(injected);
+    if (!loading && !account) {
+      setLoading(true);
+      activate(injected).finally(() => {
+        setLoading(false);
+      });
+    } else if (!loading && account) {
+      deactivate();
+    }
   };
 
   return (
-    <div>
-      <h1>Hello world</h1>
-      {error && <pre>{JSON.stringify(error, null, 4)}</pre>}
+    <div className="m-12 bg-white p-4">
+      <h1>{account ? 'Welcome' : 'Please connect with Metamask'}</h1>
+      {error && (
+        <Alert
+          type="error"
+          message={<pre>{JSON.stringify(error, null, 4)}</pre>}
+        />
+      )}
       {account && <pre>{account}</pre>}
-      <button type="button" onClick={handleClick}>
-        {account ? 'Disconnect' : 'Connect'}
-      </button>
-      {account && owner && account === owner && <AdminComponent />}
+      <Button type="default" loading={loading} onClick={handleClick}>
+        {account ? 'Logout' : 'Connect'}
+      </Button>
     </div>
   );
 }

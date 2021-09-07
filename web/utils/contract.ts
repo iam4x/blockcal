@@ -1,4 +1,5 @@
 import Web3 from 'web3';
+import { atom, useAtom } from 'jotai';
 import { useWeb3React } from '@web3-react/core';
 import { useCallback, useEffect, useState } from 'react';
 
@@ -7,44 +8,47 @@ import type { Contract } from 'web3-eth-contract/types';
 import { CONTRACT_ADDRESS } from '../config';
 import abi from './abi.json';
 
-export function useContract() {
-  const { connector } = useWeb3React();
+const contractAtom = atom<Contract | null>(null);
+const web3Atom = atom<Web3 | null>(null);
+const ownerAtom = atom<boolean>(false);
 
-  const [contract, setContract] = useState<Contract | null>(null);
-  const [owner, setOwner] = useState<string | null>(null);
-  const [web3, setWeb3] = useState<Web3 | null>(null);
+export function useContract() {
+  const { account, connector } = useWeb3React();
+
+  const [contract, setContract] = useAtom(contractAtom);
+  const [web3, setWeb3] = useAtom(web3Atom);
+  const [isOwner, setOwner] = useAtom(ownerAtom);
+
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState<any | null>(null);
 
   const initialize = useCallback(async () => {
-    if (connector) {
-      const provider = await connector.getProvider();
-      const _web3 = new Web3(provider);
-      const _contract = new _web3.eth.Contract(abi as any, CONTRACT_ADDRESS);
-      setWeb3(_web3);
-      setContract(_contract);
+    if (!loading && !contract && connector) {
+      setLoading(true);
+      try {
+        const provider = await connector.getProvider();
+        const _web3 = new Web3(provider);
+        const _contract = new _web3.eth.Contract(abi as any, CONTRACT_ADDRESS);
+        const _owner = await _contract.methods.owner().call();
+        setWeb3(_web3);
+        setContract(_contract);
+        setOwner(_owner === account);
+      } catch (err) {
+        setError(err);
+      }
+      setLoading(false);
     }
-  }, [connector]);
-
-  const fetchOwner = useCallback(async () => {
-    if (contract) {
-      const _owner = await contract.methods.owner().call();
-      setOwner(_owner);
-    }
-    return null;
-  }, [contract]);
+  }, [account, connector, contract, loading, setContract, setOwner, setWeb3]);
 
   useEffect(() => {
     initialize();
   }, [initialize]);
 
-  useEffect(() => {
-    fetchOwner();
-  }, [fetchOwner]);
-
-  return { contract, owner, web3 };
+  return { contract, isOwner, web3, loading, error };
 }
 
-export function useContractQuery<T>(method: string, args: any[]) {
-  const { contract } = useContract();
+export function useContractQuery<T>(method: string, args: any[] = []) {
+  const [contract] = useAtom(contractAtom);
 
   const [data, setData] = useState<T | null>(null);
   const [loading, setLoading] = useState(false);
@@ -81,7 +85,9 @@ export function useContractQuery<T>(method: string, args: any[]) {
 }
 
 export function useContractMutation<T>(method: string) {
-  const { contract, web3 } = useContract();
+  const [contract] = useAtom(contractAtom);
+  const [web3] = useAtom(web3Atom);
+
   const { account } = useWeb3React();
 
   const [data, setData] = useState<T | null>(null);
