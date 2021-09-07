@@ -71,8 +71,6 @@ contract BlockCal {
   uint256[][] public bookedSlots;
 
   function getCompanies() public view returns (CompanyResponse[] memory) {
-    require(msg.sender == owner, "Only owner can see list of companies");
-
     CompanyResponse[] memory _companies = new CompanyResponse[](
       companiesIds.length
     );
@@ -86,14 +84,8 @@ contract BlockCal {
   }
 
   function getRooms() public view returns (RoomResponse[] memory) {
-    require(
-      employees[msg.sender].addr == msg.sender ||
-        msg.sender == owner ||
-        msg.sender == address(this),
-      "Only employees can see list of rooms"
-    );
-
     RoomResponse[] memory _rooms = new RoomResponse[](roomsIds.length);
+
     for (uint256 i = 0; i < roomsIds.length; i++) {
       _rooms[i].id = rooms[roomsIds[i]].id;
       _rooms[i].companyId = rooms[roomsIds[i]].companyId;
@@ -103,13 +95,6 @@ contract BlockCal {
   }
 
   function getBookedSlots() public view returns (BookedSlotResponse[] memory) {
-    require(
-      employees[msg.sender].addr == msg.sender ||
-        msg.sender == owner ||
-        msg.sender == address(this),
-      "Only employees can see list of slots"
-    );
-
     BookedSlotResponse[] memory _bookedSlots = new BookedSlotResponse[](
       bookedSlots.length
     );
