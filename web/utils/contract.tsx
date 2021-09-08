@@ -1,7 +1,9 @@
+import React, { useCallback, useEffect, useState } from 'react';
 import Web3 from 'web3';
+import { notification } from 'antd';
 import { atom, useAtom } from 'jotai';
+import { atomWithStorage } from 'jotai/utils';
 import { useWeb3React } from '@web3-react/core';
-import { useCallback, useEffect, useState } from 'react';
 
 import type { Contract } from 'web3-eth-contract/types';
 
@@ -38,7 +40,8 @@ export function useContract() {
       }
       setLoading(false);
     }
-  }, [account, connector, contract, loading, setContract, setOwner, setWeb3]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connector, account]);
 
   useEffect(() => {
     initialize();
@@ -47,27 +50,35 @@ export function useContract() {
   return { contract, isOwner, web3, loading, error };
 }
 
+const cacheAtom = atomWithStorage<Record<string, any>>('cache', {});
+const _null = null;
+
 export function useContractQuery<T>(method: string, args: any[] = []) {
   const [contract] = useAtom(contractAtom);
 
-  const [data, setData] = useState<T | null>(null);
+  const [data, setData] = useAtom(cacheAtom);
+  const cacheKey = args.length ? `${method}-${args.join('-')}` : method;
+  const cached = (data[cacheKey] as T) || _null;
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any | null>(null);
 
   const query = useCallback(async () => {
     if (contract && !loading) {
       setLoading(true);
-
       try {
-        const _data = await contract.methods[method](...args).call();
-        setData(_data);
+        const response = await contract.methods[method](...args).call();
+        setData((_) => ({ ..._, [cacheKey]: response }));
       } catch (err) {
+        // eslint-disable-next-line no-console
+        console.error(err);
         setError(err);
         setLoading(false);
       }
     }
     return null;
-  }, [contract, method, args, loading, setLoading]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [contract]);
 
   useEffect(() => {
     let interval: any;
@@ -81,7 +92,12 @@ export function useContractQuery<T>(method: string, args: any[] = []) {
     };
   }, [query]);
 
-  return { data, loading, error, refetch: query };
+  return {
+    data: cached,
+    loading: !cached && loading,
+    error,
+    refetch: query,
+  };
 }
 
 export function useContractMutation<T>(method: string) {
@@ -101,16 +117,38 @@ export function useContractMutation<T>(method: string) {
         try {
           const tx = contract.methods[method](...args);
           const gas = await tx.estimateGas({ from: account });
-          const result = await tx.send({ from: account, gas });
+          const result = await tx
+            .send({ from: account, gas })
+            .on('transactionHash', (hash: string) => {
+              notification.info({
+                key: hash,
+                message: 'Waiting for confirmation...',
+                description: <pre>{hash}</pre>,
+                placement: 'bottomRight',
+                duration: 0,
+              });
+            });
           await web3.eth.getTransactionReceipt(result.transactionHash);
           setData(result);
-        } catch (err) {
+          notification.close(result.transactionHash);
+          notification.success({
+            message: 'Success!',
+            description: <pre>{result.transactionHash}</pre>,
+            placement: 'bottomRight',
+          });
+        } catch (err: any) {
+          notification.error({
+            message: 'Error!',
+            description: <pre>{JSON.stringify(err, null, 4)}</pre>,
+            placement: 'bottomRight',
+          });
           setError(err);
         }
         setLoading(false);
       }
     },
-    [account, contract, loading, method, web3]
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [contract, web3]
   );
 
   return { mutation, data, loading, error };
