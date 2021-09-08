@@ -14,6 +14,7 @@
   "function employeesAddresses(uint256) view returns (address)",
   "function getBookedSlots() view returns (tuple[])",
   "function getCompanies() view returns (tuple[])",
+  "function getEmployees() view returns (tuple[])",
   "function getRooms() view returns (tuple[])",
   "function isRoomSlotBooked(uint256 roomId, uint256 slot) view returns (bool isBooked)",
   "function owner() view returns (address)",

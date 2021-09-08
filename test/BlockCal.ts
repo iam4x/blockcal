@@ -268,6 +268,13 @@ describe('BlockCal contract', function () {
       );
     });
 
+    it('Should return employees list', async () => {
+      const employees = await blockCal.getEmployees();
+      expect(employees).to.have.lengthOf(2);
+      expect(employees[0].name).to.equal('Max');
+      expect(employees[1].name).to.equal('Tyler');
+    });
+
     it('Should return rooms', async () => {
       await blockCal.addRooms(1, 10);
       await blockCal.addRooms(2, 10);

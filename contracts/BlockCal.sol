@@ -111,6 +111,20 @@ contract BlockCal {
     return _bookedSlots;
   }
 
+  function getEmployees() public view returns (EmployeeResponse[] memory) {
+    EmployeeResponse[] memory _employees = new EmployeeResponse[](
+      employeesAddresses.length
+    );
+
+    for (uint256 i = 0; i < employeesAddresses.length; i++) {
+      _employees[i].addr = employeesAddresses[i];
+      _employees[i].name = employees[employeesAddresses[i]].name;
+      _employees[i].companyId = employees[employeesAddresses[i]].companyId;
+    }
+
+    return _employees;
+  }
+
   function employeeInfos(address _addr)
     public
     view
