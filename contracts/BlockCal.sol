@@ -1,6 +1,8 @@
 // SPDX-License-Identifier: GPL-3.0
 pragma solidity ^0.8.4;
 
+import "hardhat/console.sol";
+
 struct Room {
   uint256 id;
   uint256 index;
@@ -173,6 +175,24 @@ contract BlockCal {
     return true;
   }
 
+  function hasRoom(uint256 companyId) public view returns (uint256) {
+    for (uint256 index = 0; index < roomsIds.length; index++) {
+      if (rooms[roomsIds[index]].companyId == companyId) {
+        return roomsIds[index];
+      }
+    }
+    return 0;
+  }
+
+  function hasEmployee(uint256 companyId) public view returns (address) {
+    for (uint256 index = 0; index < employeesAddresses.length; index++) {
+      if (employees[employeesAddresses[index]].companyId == companyId) {
+        return employeesAddresses[index];
+      }
+    }
+    return address(0);
+  }
+
   function removeCompany(uint256 companyId) public returns (bool success) {
     require(msg.sender == owner, "Only owner can delete company");
     require(
@@ -180,18 +200,14 @@ contract BlockCal {
       "Company does not exist"
     );
 
-    for (uint256 index = 0; index < employeesAddresses.length; index++) {
-      address employeeAddress = employeesAddresses[index];
-      if (employees[employeeAddress].companyId == companyId) {
-        this.removeEmployee(employeeAddress);
-      }
+    while (this.hasRoom(companyId) != 0) {
+      uint256 roomId = this.hasRoom(companyId);
+      this.removeRoom(roomId);
     }
 
-    for (uint256 index = 0; index < roomsIds.length; index++) {
-      uint256 roomId = roomsIds[index];
-      if (rooms[roomId].companyId == companyId) {
-        this.removeRoom(roomId);
-      }
+    while (this.hasEmployee(companyId) != address(0)) {
+      address employeeAddr = this.hasEmployee(companyId);
+      this.removeEmployee(employeeAddr);
     }
 
     uint256 rowToDelete = companies[companyId].index;
@@ -231,6 +247,27 @@ contract BlockCal {
     return true;
   }
 
+  function hasEmployeeBookedSlot(address employeeAddress)
+    public
+    view
+    returns (uint256[] memory)
+  {
+    uint256[] memory _bookedSlot = new uint256[](2);
+
+    for (uint256 i = 0; i < bookedSlots.length; i++) {
+      uint256 roomId = bookedSlots[i][0];
+      uint256 slotId = bookedSlots[i][1];
+
+      if (bookings[roomId][slotId].bookedBy == employeeAddress) {
+        _bookedSlot[0] = roomId;
+        _bookedSlot[1] = slotId;
+        return _bookedSlot;
+      }
+    }
+
+    return _bookedSlot;
+  }
+
   function removeEmployee(address employeeAddress)
     public
     returns (bool success)
@@ -240,12 +277,9 @@ contract BlockCal {
     require(isOwner, "Only owner can remove employee");
     require(employeeExist, "Employee does not exist");
 
-    for (uint256 i = 0; i < bookedSlots.length; i++) {
-      uint256 roomId = bookedSlots[i][0];
-      uint256 slotId = bookedSlots[i][1];
-      if (bookings[roomId][slotId].bookedBy == employeeAddress) {
-        this.unbookSlot(roomId, slotId);
-      }
+    while (this.hasEmployeeBookedSlot(employeeAddress)[0] != 0) {
+      uint256[] memory bookedSlot = this.hasEmployeeBookedSlot(employeeAddress);
+      this.unbookSlot(bookedSlot[0], bookedSlot[1]);
     }
 
     uint256 rowToDelete = employees[employeeAddress].index;
@@ -284,16 +318,24 @@ contract BlockCal {
     return true;
   }
 
+  function hasSlotBooked(uint256 roomId) public view returns (uint256) {
+    for (uint256 index = 0; index < bookedSlots.length; index++) {
+      if (bookedSlots[index][0] == roomId) {
+        return bookedSlots[index][1];
+      }
+    }
+    return 0;
+  }
+
   function removeRoom(uint256 roomId) public returns (bool success) {
     bool isOwner = msg.sender == owner || msg.sender == address(this);
     require(isOwner, "Only owner can remove room");
     require(rooms[roomId].id == roomId, "Room does not exist");
 
     // remove booked slots
-    for (uint256 slot = 1; slot <= 25; slot++) {
-      if (bookings[roomId][slot].bookedBy != address(0)) {
-        delete bookings[roomId][slot];
-      }
+    while (this.hasSlotBooked(roomId) != 0) {
+      uint256 slotBooked = this.hasSlotBooked(roomId);
+      this.unbookSlot(roomId, slotBooked);
     }
 
     uint256 rowToDelete = rooms[roomId].index;
@@ -312,7 +354,7 @@ contract BlockCal {
     public
     returns (bool success)
   {
-    require(slotId > 0 && slotId < 26, "Slot must be between 1 and 25");
+    require(slotId > 0 && slotId < 25, "Slot must be between 1 and 25");
     require(bookings[roomId][slotId].booked != true, "Slot already booked");
     require(
       employees[msg.sender].addr == msg.sender,
@@ -345,11 +387,11 @@ contract BlockCal {
       "Only owner can unbook slot"
     );
 
-    uint256 rowToDelete = bookings[roomId][slot].index;
+    uint256 indexToRemove = bookings[roomId][slot].index;
     uint256[] memory keyToMove = bookedSlots[bookedSlots.length - 1];
 
-    bookedSlots[rowToDelete] = keyToMove;
-    bookings[roomId][slot].index = rowToDelete;
+    bookings[keyToMove[0]][keyToMove[1]].index = indexToRemove;
+    bookedSlots[indexToRemove] = keyToMove;
 
     bookedSlots.pop();
     delete bookings[roomId][slot];

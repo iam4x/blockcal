@@ -56,21 +56,61 @@ describe('BlockCal contract', function () {
     });
 
     it('Should remove employees assigned', async () => {
-      const [, addr1] = await ethers.getSigners();
+      const [, ...signers] = await ethers.getSigners();
       await blockCal.addCompany('Coke');
-      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.addCompany('Pepsi');
+      for (const signer of signers) {
+        await blockCal.addEmployee(signer.address, 1, 'John');
+      }
+      expect(await blockCal.getEmployees()).to.have.lengthOf(signers.length);
       await blockCal.removeCompany(1);
-      await expect(blockCal.employeeInfos(addr1.address)).to.be.revertedWith(
-        'Employee does not exist'
-      );
+      expect(await blockCal.getEmployees()).to.have.lengthOf(0);
     });
 
     it('Should remove rooms assigned', async () => {
       await blockCal.addCompany('Coke');
-      await blockCal.addRoom(1);
+      await blockCal.addCompany('Pepsi');
+      await blockCal.addRooms(1, 10);
+      await blockCal.addRooms(2, 10);
+      expect(await blockCal.getRooms()).to.have.lengthOf(20);
       await blockCal.removeCompany(1);
-      expect((await blockCal.rooms(1)).id).to.equal(0);
-      expect((await blockCal.rooms(1)).name).to.equal(undefined);
+      expect(await blockCal.getRooms()).to.have.lengthOf(10);
+    });
+
+    it('Should remove all linked resources', async () => {
+      const [, addr1, addr2] = await ethers.getSigners();
+      await blockCal.addCompany('Coke');
+      await blockCal.addCompany('Pepsi');
+      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.addEmployee(addr2.address, 2, 'Tyler');
+      await blockCal.addRooms(1, 5);
+      await blockCal.addRooms(2, 5);
+
+      const rooms = await blockCal.getRooms();
+      const slots = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      for (const room of rooms) {
+        await Promise.all(
+          // eslint-disable-next-line no-loop-func
+          slots.map((slot) =>
+            blockCal
+              .connect(slot > slots.length / 2 ? addr1 : addr2)
+              .bookSlot(room.id, slot)
+          )
+        );
+      }
+
+      expect(await blockCal.getRooms()).to.have.lengthOf(10);
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(
+        slots.length * rooms.length
+      );
+
+      await blockCal.removeCompany(1);
+      await blockCal.removeCompany(2);
+
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(0);
+      expect(await blockCal.getRooms()).to.have.lengthOf(0);
+      expect(await blockCal.getEmployees()).to.have.lengthOf(0);
     });
   });
 
@@ -124,6 +164,38 @@ describe('BlockCal contract', function () {
       expect(await blockCal.getBookedSlots()).to.have.lengthOf(1);
       await blockCal.removeEmployee(addr1.address);
       expect(await blockCal.getBookedSlots()).to.have.lengthOf(0);
+    });
+
+    it('Should remove booked slots when removing company', async () => {
+      const [, addr1, addr2] = await ethers.getSigners();
+      await blockCal.addEmployee(addr1.address, 1, 'Max');
+      await blockCal.addEmployee(addr2.address, 2, 'Tyler');
+      await blockCal.addRooms(1, 1);
+      await blockCal.addRooms(2, 1);
+
+      const rooms = await blockCal.getRooms();
+      const slots = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10];
+
+      for (const room of rooms) {
+        await Promise.all(
+          // eslint-disable-next-line no-loop-func
+          slots.map((slot) =>
+            blockCal.connect(room === 1 ? addr1 : addr2).bookSlot(room.id, slot)
+          )
+        );
+      }
+
+      expect(await blockCal.getRooms()).to.have.lengthOf(2);
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(
+        slots.length * rooms.length
+      );
+
+      await blockCal.removeCompany(1);
+
+      expect(await blockCal.getRooms()).to.have.lengthOf(1);
+      expect(await blockCal.getBookedSlots()).to.have.lengthOf(
+        rooms.length * (slots.length / 2)
+      );
     });
   });
 
