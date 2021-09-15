@@ -37,7 +37,7 @@ export function AdminEmployeesComponent({
   return (
     <div>
       <Table
-        rowKey="id"
+        rowKey="addr"
         dataSource={employees.data || []}
         size="small"
         pagination={false}
