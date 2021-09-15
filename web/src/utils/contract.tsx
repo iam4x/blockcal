@@ -2,7 +2,6 @@ import React, { useCallback, useEffect, useState } from 'react';
 import Web3 from 'web3';
 import { notification } from 'antd';
 import { atom, useAtom } from 'jotai';
-import { atomWithStorage } from 'jotai/utils';
 import { useWeb3React } from '@web3-react/core';
 
 import type { Contract } from 'web3-eth-contract/types';
@@ -50,9 +49,6 @@ export function useContract() {
   return { contract, isOwner, web3, loading, error };
 }
 
-const cacheAtom = atomWithStorage<Record<string, any>>('cache', {});
-const _null = null;
-
 export interface ContractQuery<T extends Record<string, any>> {
   data: T | null;
   loading: boolean;
@@ -66,9 +62,7 @@ export function useContractQuery<T>(
 ): ContractQuery<T> {
   const [contract] = useAtom(contractAtom);
 
-  const [data, setData] = useAtom(cacheAtom);
-  const cacheKey = args.length ? `${method}-${args.join('-')}` : method;
-  const cached = (data[cacheKey] as T) || _null;
+  const [data, setData] = useState(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<any | null>(null);
@@ -78,7 +72,7 @@ export function useContractQuery<T>(
       setLoading(true);
       try {
         const response = await contract.methods[method](...args).call();
-        setData((_) => ({ ..._, [cacheKey]: response }));
+        setData(response);
       } catch (err) {
         // eslint-disable-next-line no-console
         console.error(err);
@@ -102,8 +96,8 @@ export function useContractQuery<T>(
   }, [query]);
 
   return {
-    data: cached,
-    loading: !cached && loading,
+    data,
+    loading: !data && loading,
     error,
     refetch: query,
   };
@@ -148,7 +142,7 @@ export function useContractMutation<T>(method: string) {
         } catch (err: any) {
           notification.error({
             message: 'Error!',
-            description: <pre>{JSON.stringify(err, null, 4)}</pre>,
+            description: <pre>{err.message}</pre>,
             placement: 'bottomRight',
           });
           setError(err);
