@@ -13,3 +13,9 @@ export interface Room {
   id: string;
   companyId: string;
 }
+
+export interface BookedSlot {
+  slotId: string;
+  roomId: string;
+  bookedBy: string;
+}
