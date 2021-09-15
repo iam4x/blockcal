@@ -62,7 +62,10 @@ export function AdminRoomsComponent({
       <h1>Rooms ({roomsWithCompany?.length})</h1>
       <div className="flex flex-wrap">
         {roomsWithCompany?.map((room) => (
-          <div className="w-1/4 p-2" key={room.room.id}>
+          <div
+            className="w-1/4 p-2"
+            key={`${room.room.id}_${room.room.companyId}`}
+          >
             <Card
               className="w-full"
               actions={[
@@ -76,7 +79,7 @@ export function AdminRoomsComponent({
                 title={
                   <>
                     {room.company?.name?.[0].toUpperCase() || '?'}
-                    {room.room.companyId}
+                    {room.room.id}
                   </>
                 }
                 description={
