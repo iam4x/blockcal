@@ -1,40 +1,52 @@
-## Smart Contract Specs
+# BlockCal
 
-1. Has an admin/owner
-2. Admin can create X companies
-3. Admin can create X rooms for every company
-4. Admin can create users with 0x and company linked
-5. An user can book a room if it's not taken for one hour
-6. An user can unbook a room he booked
-7. Admin can delete companies and it will delete their users and their rooms
-8. Admin can delete users and it will delete their booking
-9. Admin can transfer ownership of contract
+> Fully decentralized blockchain based calendar.
 
-## Website data API
+## Specs
 
-* Companies ->
-  * id
-  * name
-  * roomsIds
+* Owner can create companies and assign rooms to them.
+* Owner can create employees and assign them to companies.
+* Employees can book a room for a given day slot.
+* Employees can unbook their own booking.
 
-* Rooms ->
-  * id
-  * companyId
+## Description
 
-* Slots ->
-  * slotId
-  * roomId
-  * isBooked
+This is my first ever Solidity smart contract, please don't be too picky on the data structure and the code, I still need to learn the best practices and this was a complete discovery.
 
-## Admin interface
+I went with a simple CRUD data structure and the same contract owns the data, there's no proxy to a data store only contract.
 
-* add antd
-* add tailwind
-* add jotai
+To develop the contract itself I went with TDD using [Hardhat](https://hardhat.org/) and then deployed on the Ropsten testnet to interract with the UI I built.
 
-* If logged in as admin
-* Redirect to `/admin`
-* Use antd components to create forms
-  * Create companies
-  * Create users
-  * Create rooms
+The UI is built with [React](https://reactjs.org/), [ant.design](https://ant.design/) and [tailwindcss](https://tailwindcss.com/).
+
+## How to run
+
+* Clone the repository
+* Create a `.env` and fill it according to `.env.example`
+* Run `yarn && yarn deploy` copy the contract address and add it to `web/.env`
+* Run `cd web && yarn dev` open your browser on `http://localhost:3000` and voilà!
+
+## BlockCal.sol
+
+* [0x8d48e5c896583c1aad7e40bec76c0d07e3fb75de](https://ropsten.etherscan.io/address/0x8d48e5c896583c1aad7e40bec76c0d07e3fb75de) (Ropsten)
+
+### Public Methods
+
+* `getCompanies()` -> `{ id: string; name: string }[]`
+* `getEmployees()` -> `{ addr: string; name: string, companyId: string }[]`
+* `getRooms()` -> `{ id: string; companyId: string }[]`
+* `getBookedSlots()` -> `{ slotId: string; roomId: string; bookedBy: string; }[]`
+
+### Owner methods
+
+* `addComapny(name: string)`
+* `removeCompany(id: string)`
+* `addEmployee(name: string, companyId: string)`
+* `removeEmployee(addr: string)`
+* `addRoom(name: string, companyId: string)`
+* `removeRoom(id: string)`
+
+### Employee methods
+
+* `bookSlot(roomId: string, slotId: string)`
+* `unbookSlot(roomId: string, slotId: string)`
