@@ -64,3 +64,15 @@
 * `/` -> connect to Metamask
 * `/admin` -> administration interface to create companies, employees and rooms
 * `/calendar` -> calendar interface to book and unbook slots for employees
+
+### Known issues
+
+* When switching profile into Metamask the contract is not updated, you must refresh the page
+* Reloading the page doesn't save the last connected user
+
+### Room for improvments
+
+* Use multicall contract to fetch data for the UI
+* The contract data and logic are stored in the same, this is a bad pattern. If you want to change your contrac logic you would have to migrate the data also.
+  * Use external storage contract (https://github.com/fravoll/solidity-patterns/blob/master/docs/eternal_storage.md)
+  * Use a proxy contract pattern (https://github.com/fravoll/solidity-patterns/blob/master/docs/proxy_delegate.md)
