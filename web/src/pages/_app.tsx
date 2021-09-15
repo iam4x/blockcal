@@ -9,8 +9,8 @@ import type { AppProps } from 'next/app';
 
 import { useContract } from '../utils/contract';
 
-import '../styles/globals.css';
 import 'antd/dist/antd.css';
+import '../styles/globals.css';
 
 function getLibrary(provider: any) {
   return new Web3(provider);

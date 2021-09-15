@@ -3,7 +3,7 @@ import { useWeb3React } from '@web3-react/core';
 import { InjectedConnector } from '@web3-react/injected-connector';
 import { Alert, Button } from 'antd';
 
-import { CHAIN_ID } from '../config';
+import { CHAIN_ID } from '../../config';
 
 const injected = new InjectedConnector({ supportedChainIds: [CHAIN_ID] });
 
@@ -23,11 +23,12 @@ export default function HomeComponent() {
   };
 
   return (
-    <div className="m-12 bg-white p-4">
+    <div className="p-4 m-12 bg-white">
       <h1>{account ? 'Welcome' : 'Please connect with Metamask'}</h1>
       {error && (
         <Alert
           type="error"
+          className="mb-3"
           message={<pre>{JSON.stringify(error, null, 4)}</pre>}
         />
       )}

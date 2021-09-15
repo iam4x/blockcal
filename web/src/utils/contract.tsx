@@ -7,7 +7,7 @@ import { useWeb3React } from '@web3-react/core';
 
 import type { Contract } from 'web3-eth-contract/types';
 
-import { CONTRACT_ADDRESS } from '../config';
+import { CONTRACT_ADDRESS } from '../../config';
 import abi from './abi.json';
 
 const contractAtom = atom<Contract | null>(null);
@@ -53,7 +53,17 @@ export function useContract() {
 const cacheAtom = atomWithStorage<Record<string, any>>('cache', {});
 const _null = null;
 
-export function useContractQuery<T>(method: string, args: any[] = []) {
+export interface ContractQuery<T extends Record<string, any>> {
+  data: T | null;
+  loading: boolean;
+  error: any | null;
+  refetch: () => Promise<void>;
+}
+
+export function useContractQuery<T>(
+  method: string,
+  args: any[] = []
+): ContractQuery<T> {
   const [contract] = useAtom(contractAtom);
 
   const [data, setData] = useAtom(cacheAtom);
@@ -76,7 +86,6 @@ export function useContractQuery<T>(method: string, args: any[] = []) {
         setLoading(false);
       }
     }
-    return null;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [contract]);
 

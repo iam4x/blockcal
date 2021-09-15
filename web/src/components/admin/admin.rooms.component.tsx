@@ -2,19 +2,25 @@ import React from 'react';
 import { DeleteOutlined } from '@ant-design/icons';
 import { Form, Card, Divider, Modal, Select, Input, Button } from 'antd';
 
-import { useContractMutation, useContractQuery } from '../../utils/contract';
+import { useContractMutation } from '../../utils/contract';
 
-export function AdminRoomsComponent() {
+import type { ContractQuery } from '../../utils/contract';
+import type { Company, Room } from '../../types';
+
+export function AdminRoomsComponent({
+  companies,
+  rooms,
+}: {
+  companies: ContractQuery<Company[]>;
+  rooms: ContractQuery<Room[]>;
+}) {
   const [form] = Form.useForm();
-
-  const companies = useContractQuery<Array<[string, string]>>('getCompanies');
-  const rooms = useContractQuery<Array<[string, string]>>('getRooms');
 
   const { mutation: removeRoomMutation } = useContractMutation('removeRoom');
   const { mutation: addRoomsMutation } = useContractMutation('addRooms');
 
   const roomsWithCompany = rooms.data?.map((room) => {
-    const company = companies.data?.find((c) => c[0] === room[1]);
+    const company = companies.data?.find((c) => c.id === room.companyId);
     return { room, company };
   });
 
@@ -53,30 +59,30 @@ export function AdminRoomsComponent() {
 
   return (
     <div>
-      <h1>Rooms</h1>
+      <h1>Rooms ({roomsWithCompany?.length})</h1>
       <div className="flex flex-wrap">
         {roomsWithCompany?.map((room) => (
-          <div className="w-1/4 p-2" key={room.room[0] + room.room[1]}>
+          <div className="w-1/4 p-2" key={room.room.id}>
             <Card
               className="w-full"
               actions={[
                 <DeleteOutlined
                   key="remove"
-                  onClick={() => handleRemoveRoom(room.room[0])}
+                  onClick={() => handleRemoveRoom(room.room.companyId)}
                 />,
               ]}
             >
               <Card.Meta
                 title={
                   <>
-                    {room.company?.[1]?.[0].toUpperCase() || '?'}
-                    {room.room[0]}
+                    {room.company?.name?.[0].toUpperCase() || '?'}
+                    {room.room.companyId}
                   </>
                 }
                 description={
                   <div className="font-mono text-xs">
-                    <p>Room: {room.room[0]}</p>
-                    <p>Company: {room.room[1]}</p>
+                    <p>Room: {room.room.id}</p>
+                    <p>Company: {room.room.companyId}</p>
                   </div>
                 }
               />
@@ -99,8 +105,8 @@ export function AdminRoomsComponent() {
           >
             <Select>
               {companies.data?.map((company) => (
-                <Select.Option key={company[0]} value={company[0]}>
-                  {company[1]}
+                <Select.Option key={company.id} value={company.id}>
+                  {company.name}
                 </Select.Option>
               ))}
             </Select>
